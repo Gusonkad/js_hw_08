@@ -1,112 +1,101 @@
 // Gallery
-"use strict";
 
-import gallery from "./gallery-items.js";
+import gallery from './gallery-items.js';
+const ulRef = document.querySelector('.js-gallery');
+const lightbox = document.querySelector('.js-lightbox');
+const btn = document.querySelector('button[data-action ="close-lightbox"]');
+const Content = document.querySelector('.lightbox__content');
+const overlay = document.querySelector('.lightbox__overlay');
+const newGallery = gallery.reduce((item, { preview, description, original }) => {
+    return (item += `<li class="gallery__item">
+  <a class="gallery__link" href="${original}" >
+  <img loading="lazy" class="gallery__image"
+  src="${preview}"
+  alt="${description}"
+  />
+  </a>
+  </li>`);
+}, '');
+ulRef.innerHTML = newGallery;
 
-const KEYCODE_ESC = 27;
-const KEYCODE_left = 37;
-const KEYCODE_right = 39;
+const img = document.querySelector('.gallery__image');
 
-const refs = {
-    list: document.querySelector(".gallery"),
-    Lightbox: document.querySelector(".lightbox"),
-    lightboxImage: document.querySelector(".lightbox__image"),
-    lightboxContent: document.querySelector(".lightbox__content"),
-    lightBoxBtn: document.querySelector(".lightbox__button")
-};
-// Add elements
-const galleryProcess = gallery => {
-    return gallery.map(({ preview, original, description }) => {
-        const localRefs = {
-            item: document.createElement("li"),
-            link: document.createElement("a"),
-            image: document.createElement("img"),
-            span: document.createElement("span"),
-            i: document.createElement("i")
-        };
-        localRefs.item.classList.add("gallery__item");
-        localRefs.link.classList.add("gallery__link");
-        localRefs.link.setAttribute("href", original);
-        localRefs.image.classList.add("gallery__image");
-        localRefs.image.setAttribute("src", preview);
-        localRefs.image.setAttribute("data-source", original);
-        localRefs.image.setAttribute("alt", description);
-        localRefs.span.classList.add("gallery__icon");
-        localRefs.i.textContent = "zoom out map";
-        localRefs.span.appendChild(localRefs.i);
-        localRefs.link.appendChild(localRefs.image);
-        localRefs.link.appendChild(localRefs.span);
-        localRefs.item.appendChild(localRefs.link);
-        return localRefs.item;
-    });
-};
-// Show all small images
-const items = galleryProcess(gallery);
-items.forEach(item => {
-    refs.list.appendChild(item);
-});
+ulRef.addEventListener('click', event);
+
 // Open big image
-const handleClick = e => {
+let element;
+function event(e) {
     e.preventDefault();
-    const data = e.target.dataset.source;
-    let image = refs.lightboxImage.cloneNode(false);
-    image.setAttribute("src", data);
-    image.setAttribute("alt", e.target.alt);
-    refs.lightboxContent.innerHTML = "";
-    refs.lightboxContent.append(image);
-    refs.Lightbox.classList.add("is-open");
-};
+    if (e.target.className !== img.className) {
+        return;
+    }
+    const bigImg = e.target.alt;
+    for (let i = 0; i < gallery.length; i++) {
+        if (gallery[i].description === bigImg) {
+            element = gallery[i].original;
+        }
+    }
+
+    lightbox.classList.add('is-open');
+    Content.innerHTML = `<img class="lightbox__image"
+    src="${element}"
+    alt="${bigImg}"
+  />`;
+
+}
+
 // Close big image
-const closeHandler = () => {
-    refs.Lightbox.classList.remove("is-open");
-};
-// Escape button
-const handleKeyup = e => {
-    if (e.keyCode == KEYCODE_ESC) {
-        console.log("key ESC pressed");
-        closeHandler();
-    }
-// Image left, right 
-    let img =  image.setAttribute("src", data);
-    let allItems = items;
+function CloseBigImg() {
+    const lightboxImage = document.querySelector('.lightbox__image');
+    lightbox.classList.remove('is-open');
+    lightboxImage.alt = '';
+    lightboxImage.src = '';
+    console.log('Exit');
+}
+const closeModal = document.querySelector('[data-action="close-lightbox"]');
+closeModal.addEventListener('click', CloseBigImg);
 
-    // Right
-    if (
-        e.keyCode == KEYCODE_right && refs.Lightbox.classList.contains("is-open")
-    ) {
-        let index = allItems.indexOf(img);
-        if (index != allItems.length - 1) {
-            index++;
-            img = allItems[index];
+overlay.addEventListener('click', CloseBigImg);
+
+btn.addEventListener('click', CloseBigImg);
+
+// Control buttons
+document.addEventListener('keyup', key => {
+    const lightboxImage = document.querySelector('.lightbox__image');
+
+    // Button Esc //
+    if (key.code === 'Escape' || key.code === 'Space') {
+        CloseBigImg()
+    }
+    if (lightbox.className.includes('is-open')) {
+        const mapOriginal = gallery.map(value => value.original);
+        const indexNum = mapOriginal.indexOf(lightboxImage.src);
+
+        // Arrow left
+        const mapDelLight = mapOriginal.length - 1;
+        if (key.code === 'ArrowLeft') {
+            if (key.target.className === img.className) {
+                return;
+            }
+            const indexLeft = indexNum - 1;
+            lightboxImage.src = mapOriginal[indexLeft];
+            if (indexNum === 0) {
+                lightboxImage.src = mapOriginal[mapDelLight];
+            }
         }
-        console.log(index);
-    }
-// left
-    if (
-        e.keyCode == KEYCODE_left && refs.Lightbox.classList.contains("is-open")
-    ) {
-        let index = allItems.indexOf(img);
-        if (index <= -1 || index === 0 || index == allItems.length - 1) {
-            index == allItems.length - 1;
-            img = allItems[index];
-        } else {
-            img = allItems[--index];
+
+        // Arrow right
+        if (key.code === 'ArrowRight') {
+            if (key.target.className === img.className) {
+                return;
+            }
+            const indexRight = indexNum + 1;
+            lightboxImage.src = mapOriginal[indexRight];
+            if (indexRight === mapOriginal.length) {
+                lightboxImage.src = mapOriginal[0];
+            }
         }
-        console.log(index);
+        console.log(indexNum);
     }
-};
-// Click overlay
-const contentClickHandler = e => {
-    if (e.target !== e.currentTarget) {
-        closeHandler();
-    }
-};
-// Listenrs
-refs.list.addEventListener("click", handleClick);
-refs.lightBoxBtn.addEventListener("click", closeHandler);
-window.addEventListener("keyup", handleKeyup);
-refs.lightboxContent.addEventListener("click", contentClickHandler);
-
-
-
+});
 
